@@ -50,6 +50,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('devoluciones', DevolucionController::class)->only(['store','update','destroy']);
         Route::post('bajas/{id}/archivo',  [BajaController::class, 'subirArchivo']);
         Route::apiResource('bajas', BajaController::class)->only(['store','update','destroy']);
+        Route::post('movimientos/traslado',        [MovimientoProductoController::class, 'traslado']);
+        Route::get('movimientos/historial',        [MovimientoProductoController::class, 'historial']);
+        Route::delete('movimientos/historial/{id}', [MovimientoProductoController::class, 'destroyHistorial']);
         Route::apiResource('movimientos', MovimientoProductoController::class)->only(['store','update','destroy']);
     });
 

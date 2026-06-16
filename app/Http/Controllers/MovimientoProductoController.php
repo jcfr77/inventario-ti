@@ -12,6 +12,7 @@ class MovimientoProductoController extends Controller
     {
         return response()->json(
             MovimientoProducto::with(['sucursal', 'estado', 'producto.tipo', 'producto.marca'])
+                ->where('VIGENTE', 1)
                 ->orderBy('ID_MOVIMIENTO', 'desc')
                 ->get()
         );
@@ -65,6 +66,79 @@ class MovimientoProductoController extends Controller
         ]));
         Bitacora::registrar('Movimientos', 'EDITAR', "Movimiento ID {$id} actualizado", $request->ip());
         return response()->json($movimiento);
+    }
+
+    public function historial()
+    {
+        return response()->json(
+            MovimientoProducto::with(['sucursal', 'estado', 'producto.tipo', 'producto.marca'])
+                ->where('ID_ESTADO', 4)
+                ->orderBy('ID_MOVIMIENTO', 'desc')
+                ->get()
+        );
+    }
+
+    public function traslado(Request $request)
+    {
+        $request->validate([
+            'ids'               => 'required|array|min:1',
+            'ids.*'             => 'integer',
+            'ID_SUCURSAL'       => 'nullable|integer',
+            'UBICACION_DESTINO' => 'required|string|max:255',
+            'FECHA_TRASLADO'    => 'nullable|date',
+            'OBS_TRASLADO'      => 'nullable|string|max:500',
+        ]);
+
+        $activos = MovimientoProducto::whereIn('ID_MOVIMIENTO', $request->ids)->get();
+
+        foreach ($activos as $activo) {
+            $activo->update(['VIGENTE' => 0]);
+
+            MovimientoProducto::create([
+                'ID_SUCURSAL'   => $request->ID_SUCURSAL ?? $activo->ID_SUCURSAL,
+                'ID_ESTADO'     => 4,
+                'ID_PRODUCTO'   => $activo->ID_PRODUCTO,
+                'NSERIE_PRO'    => $activo->NSERIE_PRO,
+                'MAC_PRODUCTO'  => $activo->MAC_PRODUCTO,
+                'IP_INTERNA'    => $activo->IP_INTERNA,
+                'UBICACION_PRO' => $request->UBICACION_DESTINO,
+                'OBS_BAJA'      => $activo->OBS_BAJA,
+                'FECHA_INGRESO' => now()->toDateString(),
+                'VIGENTE'       => 1,
+            ]);
+        }
+
+        $cantidad = count($request->ids);
+        Bitacora::registrar('infra_movimientos_productos', 'TRASLADO', "Traslado: {$cantidad} activo(s) → {$request->UBICACION_DESTINO}", $request->ip());
+
+        return response()->json(['trasladados' => $cantidad]);
+    }
+
+    public function destroyHistorial(Request $request, $id)
+    {
+        $movimiento = MovimientoProducto::findOrFail($id);
+
+        $query = MovimientoProducto::where('ID_PRODUCTO', $movimiento->ID_PRODUCTO)
+            ->where('VIGENTE', 0)
+            ->where('ID_MOVIMIENTO', '<', $id)
+            ->orderBy('ID_MOVIMIENTO', 'desc');
+
+        if ($movimiento->NSERIE_PRO) {
+            $query->where('NSERIE_PRO', $movimiento->NSERIE_PRO);
+        } else {
+            $query->whereNull('NSERIE_PRO');
+        }
+
+        $anterior = $query->first();
+
+        $movimiento->delete();
+
+        if ($anterior) {
+            $anterior->update(['VIGENTE' => 1]);
+        }
+
+        Bitacora::registrar('infra_movimientos_productos', 'ELIMINAR', "Historial #{$id} eliminado" . ($anterior ? ", restaurado ID {$anterior->ID_MOVIMIENTO}" : ''), $request->ip());
+        return response()->json(null, 204);
     }
 
     public function destroy(Request $request, $id)

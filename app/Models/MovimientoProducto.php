@@ -20,6 +20,7 @@ class MovimientoProducto extends Model
         'UBICACION_PRO',
         'OBS_BAJA',
         'FECHA_INGRESO',
+        'VIGENTE',
     ];
 
     public function sucursal()
