@@ -13,7 +13,7 @@ class DevolucionController extends Controller
     public function index()
     {
         return response()->json(
-            EncabezadoMov::with(['detalles.producto.tipo', 'detalles.producto.marca'])
+            EncabezadoMov::with(['sucursal', 'detalles.producto.tipo', 'detalles.producto.marca'])
                 ->where('ID_TIPO_MOV', 4)
                 ->orderBy('ID_ENCABEZADO', 'desc')
                 ->get()

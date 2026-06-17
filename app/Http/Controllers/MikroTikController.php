@@ -41,9 +41,9 @@ class MikroTikController extends Controller
 
     private function connect(): bool
     {
-        $this->socket = @fsockopen($this->host, $this->port, $errno, $errstr, 5);
+        $this->socket = @fsockopen($this->host, $this->port, $errno, $errstr, 4);
         if (!$this->socket) return false;
-        stream_set_timeout($this->socket, 5);
+        stream_set_timeout($this->socket, 4);
         $this->send(['/login', "=name={$this->usuario}", "=password={$this->password}"]);
         $r = $this->readAll();
         return isset($r[0][0]) && $r[0][0] === '!done';
@@ -87,7 +87,7 @@ class MikroTikController extends Controller
         $result = [];
         while (true) {
             $s = $this->readSentence();
-            if (empty($s)) continue;
+            if (empty($s)) break;
             $result[] = $s;
             if (in_array($s[0], ['!done', '!fatal', '!trap'])) break;
         }

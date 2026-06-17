@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('marcas', MarcaProductoController::class)->only(['index','show']);
     Route::apiResource('productos', ProductoController::class)->only(['index','show']);
     Route::get('movimientos/producto/{id}', [MovimientoProductoController::class, 'porProducto']);
+    Route::get('productos/{id}/trazabilidad', [ProductoController::class, 'trazabilidad']);
     Route::apiResource('movimientos', MovimientoProductoController::class)->only(['index','show']);
     Route::apiResource('ingresos', IngresoController::class)->only(['index','show']);
     Route::get('egresos/stock',            [EgresoController::class, 'stock']);
