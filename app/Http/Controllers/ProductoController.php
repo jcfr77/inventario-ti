@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Producto;
 use App\Models\MovimientoProducto;
+use App\Models\DetalleMov;
 use App\Models\Bitacora;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,10 +55,8 @@ class ProductoController extends Controller
         return response()->json(null, 204);
     }
 
-    public function trazabilidad($id)
+    private function buildTimeline(int $id): array
     {
-        Producto::findOrFail($id);
-
         $tiposStock = [1 => 'INGRESO', 2 => 'EGRESO', 3 => 'PRÉSTAMO', 4 => 'DEVOLUCIÓN', 5 => 'BAJA'];
 
         $stockMovs = DB::table('infra_detalle_mov as d')
@@ -95,8 +94,36 @@ class ProductoController extends Controller
                 'vigente' => $m->VIGENTE,
             ]);
 
-        return response()->json(
-            $stockMovs->concat($activoMovs)->sortBy('fecha')->values()
-        );
+        return $stockMovs->concat($activoMovs)->sortBy('fecha')->values()->all();
+    }
+
+    public function trazabilidad($id)
+    {
+        Producto::findOrFail($id);
+        return response()->json($this->buildTimeline((int)$id));
+    }
+
+    public function trazabilidadSerie($nserie)
+    {
+        $idProducto = null;
+
+        $mov = MovimientoProducto::where('NSERIE_PRO', $nserie)->first();
+        if ($mov) $idProducto = $mov->ID_PRODUCTO;
+
+        if (!$idProducto) {
+            $det = DetalleMov::where('NSERIEDETA', $nserie)->first();
+            if ($det) $idProducto = $det->ID_PRODUCTO;
+        }
+
+        if (!$idProducto) {
+            return response()->json(['error' => "N° serie '{$nserie}' no encontrado"], 404);
+        }
+
+        $producto = Producto::with(['tipo', 'marca'])->find($idProducto);
+
+        return response()->json([
+            'producto' => $producto,
+            'timeline' => $this->buildTimeline($idProducto),
+        ]);
     }
 }
