@@ -7,13 +7,36 @@ use Illuminate\Http\Request;
 class MikroTikController extends Controller
 {
     private $socket;
-    private string $host;
-    private int $port;
+    private string $host     = '';
+    private int    $port     = 8728;
+    private string $usuario  = '';
+    private string $password = '';
 
-    public function __construct()
+    private function cargarConexion(int $idSucursal): bool
     {
-        $this->host = '186.10.251.22';
-        $this->port = 8728;
+        $mdPath = base_path('mikrotik.md');
+        if (!file_exists($mdPath)) return false;
+
+        $sections = preg_split('/^## /m', file_get_contents($mdPath));
+
+        foreach ($sections as $section) {
+            if (!preg_match('/ID_SUCURSAL:\s*(\d+)/i', $section, $m)) continue;
+            if ((int)$m[1] !== $idSucursal) continue;
+
+            preg_match('/Host:\s*(.+)/i',                $section, $host);
+            preg_match('/Usuario:\s*(.+)/i',             $section, $user);
+            preg_match('/Contraseña:\s*(.+)/i',          $section, $pass);
+            preg_match('/Puerto API MikroTik:\s*(\d+)/i', $section, $port);
+
+            $this->host     = trim($host[1] ?? '');
+            $this->usuario  = trim($user[1] ?? '');
+            $this->password = trim($pass[1] ?? '');
+            $this->port     = (int)($port[1] ?? 8728);
+
+            return $this->host !== '';
+        }
+
+        return false;
     }
 
     private function connect(): bool
@@ -21,7 +44,7 @@ class MikroTikController extends Controller
         $this->socket = @fsockopen($this->host, $this->port, $errno, $errstr, 5);
         if (!$this->socket) return false;
         stream_set_timeout($this->socket, 5);
-        $this->send(['/login', '=name=supervisor', '=password=asus2025']);
+        $this->send(['/login', "=name={$this->usuario}", "=password={$this->password}"]);
         $r = $this->readAll();
         return isset($r[0][0]) && $r[0][0] === '!done';
     }
@@ -129,6 +152,7 @@ class MikroTikController extends Controller
             ->get();
 
         try {
+            $this->cargarConexion(10);
             if (!$this->connect()) throw new \Exception('Sin conexión al router');
 
             $resultado = $equipos->map(function ($eq) {
@@ -193,6 +217,7 @@ class MikroTikController extends Controller
 
         // Conectar al MikroTik y obtener tabla ARP
         try {
+            if (!$this->cargarConexion((int)$idSucursal)) throw new \Exception("Sede #{$idSucursal} no está configurada en mikrotik.md");
             if (!$this->connect()) throw new \Exception('Sin conexión al router');
             $arpRows   = $this->command('/ip/arp/print');
             $addrRows  = $this->command('/ip/address/print');
@@ -242,6 +267,7 @@ class MikroTikController extends Controller
     public function status()
     {
         try {
+            $this->cargarConexion(10);
             if (!$this->connect()) return response()->json(['error' => 'No se pudo conectar'], 503);
 
             $sucursal = \DB::table('infra_sucursal')->where('ID_SUCURSAL', 10)->value('NOMBRE_SUCURSAL') ?? 'MikroTik';

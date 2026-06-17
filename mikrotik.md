@@ -8,6 +8,14 @@
 - Puerto SSH: 22
 - Puerto API MikroTik: 8728 ✅ (método activo)
 
+## CESFAM SUR
+- ID_SUCURSAL:4
+- Host: 164.77.124.182
+- Usuario: claude
+- Contraseña: pluton2026
+- Puerto SSH: 22
+- Puerto API MikroTik: 8728 ✅ (método activo)
+
 ## Instrucciones para Claude
 - Antes de hacer cualquier cambio, muéstrame qué vas a ejecutar
 - No apliques nada sin mi confirmación

@@ -141,6 +141,79 @@ class MovimientoProductoController extends Controller
         return response()->json(null, 204);
     }
 
+    public function baja(Request $request)
+    {
+        $request->validate([
+            'ids'          => 'required|array|min:1',
+            'ids.*'        => 'integer',
+            'ID_SUCURSAL'  => 'nullable|integer',
+            'FECHA_BAJA'   => 'nullable|date',
+            'MOTIVO_BAJA'  => 'required|string|max:255',
+            'OBS_BAJA'     => 'nullable|string|max:500',
+        ]);
+
+        $activos = MovimientoProducto::whereIn('ID_MOVIMIENTO', $request->ids)->get();
+
+        foreach ($activos as $activo) {
+            $activo->update(['VIGENTE' => 0]);
+
+            MovimientoProducto::create([
+                'ID_SUCURSAL'   => $request->ID_SUCURSAL ?? $activo->ID_SUCURSAL,
+                'ID_ESTADO'     => 3,
+                'ID_PRODUCTO'   => $activo->ID_PRODUCTO,
+                'NSERIE_PRO'    => $activo->NSERIE_PRO,
+                'MAC_PRODUCTO'  => $activo->MAC_PRODUCTO,
+                'IP_INTERNA'    => $activo->IP_INTERNA,
+                'UBICACION_PRO' => $activo->UBICACION_PRO,
+                'OBS_BAJA'      => trim(($request->MOTIVO_BAJA ?? '') . ($request->OBS_BAJA ? ' — ' . $request->OBS_BAJA : '')),
+                'FECHA_INGRESO' => now()->toDateString(),
+                'VIGENTE'       => 1,
+            ]);
+        }
+
+        $cantidad = count($request->ids);
+        Bitacora::registrar('infra_movimientos_productos', 'BAJA', "Baja: {$cantidad} activo(s) — {$request->MOTIVO_BAJA}", $request->ip());
+
+        return response()->json(['dados_de_baja' => $cantidad]);
+    }
+
+    public function historialBaja()
+    {
+        return response()->json(
+            MovimientoProducto::with(['sucursal', 'estado', 'producto.tipo', 'producto.marca'])
+                ->where('ID_ESTADO', 3)
+                ->orderBy('ID_MOVIMIENTO', 'desc')
+                ->get()
+        );
+    }
+
+    public function destroyBaja(Request $request, $id)
+    {
+        $movimiento = MovimientoProducto::findOrFail($id);
+
+        $query = MovimientoProducto::where('ID_PRODUCTO', $movimiento->ID_PRODUCTO)
+            ->where('VIGENTE', 0)
+            ->where('ID_MOVIMIENTO', '<', $id)
+            ->orderBy('ID_MOVIMIENTO', 'desc');
+
+        if ($movimiento->NSERIE_PRO) {
+            $query->where('NSERIE_PRO', $movimiento->NSERIE_PRO);
+        } else {
+            $query->whereNull('NSERIE_PRO');
+        }
+
+        $anterior = $query->first();
+
+        $movimiento->delete();
+
+        if ($anterior) {
+            $anterior->update(['VIGENTE' => 1]);
+        }
+
+        Bitacora::registrar('infra_movimientos_productos', 'ELIMINAR', "Baja #{$id} eliminada" . ($anterior ? ", restaurado ID {$anterior->ID_MOVIMIENTO}" : ''), $request->ip());
+        return response()->json(null, 204);
+    }
+
     public function destroy(Request $request, $id)
     {
         MovimientoProducto::findOrFail($id)->delete();
