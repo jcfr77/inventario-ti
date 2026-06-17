@@ -10,6 +10,10 @@ class MovimientoProducto extends Model
     protected $primaryKey = 'ID_MOVIMIENTO';
     public $timestamps = false;
 
+    protected $casts = [
+        'FECHA_INGRESO' => 'datetime',
+    ];
+
     protected $fillable = [
         'ID_SUCURSAL',
         'ID_ESTADO',

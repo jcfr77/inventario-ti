@@ -103,7 +103,7 @@ class MovimientoProductoController extends Controller
                 'IP_INTERNA'    => $activo->IP_INTERNA,
                 'UBICACION_PRO' => $request->UBICACION_DESTINO,
                 'OBS_BAJA'      => $activo->OBS_BAJA,
-                'FECHA_INGRESO' => now()->toDateString(),
+                'FECHA_INGRESO' => now(),
                 'VIGENTE'       => 1,
             ]);
         }
@@ -166,7 +166,7 @@ class MovimientoProductoController extends Controller
                 'IP_INTERNA'    => $activo->IP_INTERNA,
                 'UBICACION_PRO' => $activo->UBICACION_PRO,
                 'OBS_BAJA'      => trim(($request->MOTIVO_BAJA ?? '') . ($request->OBS_BAJA ? ' — ' . $request->OBS_BAJA : '')),
-                'FECHA_INGRESO' => now()->toDateString(),
+                'FECHA_INGRESO' => now(),
                 'VIGENTE'       => 1,
             ]);
         }
