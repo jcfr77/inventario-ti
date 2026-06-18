@@ -109,6 +109,48 @@ class ProductoController extends Controller
         return $stockMovs->concat($activoMovs)->sortBy('fecha')->values()->all();
     }
 
+    public function unidades($id)
+    {
+        Producto::findOrFail($id);
+
+        // Unidades registradas en activos (con o sin serial)
+        $activos = MovimientoProducto::with(['sucursal', 'estado'])
+            ->where('ID_PRODUCTO', $id)
+            ->where('VIGENTE', 1)
+            ->get()
+            ->map(fn($m) => [
+                'id'       => $m->ID_MOVIMIENTO,
+                'serie'    => $m->NSERIE_PRO,
+                'estado'   => $m->estado->NOMBRE_ESTADO ?? '—',
+                'sede'     => $m->sucursal->NOMBRE_SUCURSAL ?? '—',
+                'ubicacion'=> $m->UBICACION_PRO,
+                'fuente'   => 'activo',
+            ]);
+
+        // Seriales en stock (NSERIEDETA) que no están en activos
+        $seriesActivos = $activos->pluck('serie')->filter()->values();
+        $stock = DB::table('infra_detalle_mov as d')
+            ->join('infra_encabezado_mov as e', 'e.ID_ENCABEZADO', '=', 'd.ID_ENCABEZADO')
+            ->leftJoin('infra_sucursal as s', 's.ID_SUCURSAL', '=', 'e.ID_SUCURSAL')
+            ->where('d.ID_PRODUCTO', $id)
+            ->whereNotNull('d.NSERIEDETA')
+            ->when($seriesActivos->isNotEmpty(), fn($q) => $q->whereNotIn('d.NSERIEDETA', $seriesActivos))
+            ->select('d.NSERIEDETA as serie', 's.NOMBRE_SUCURSAL as sede', 'e.FECHA_ENCA as fecha')
+            ->orderByDesc('e.FECHA_ENCA')
+            ->get()
+            ->unique('serie')
+            ->map(fn($r) => [
+                'id'       => null,
+                'serie'    => $r->serie,
+                'estado'   => 'EN STOCK',
+                'sede'     => $r->sede ?? '—',
+                'ubicacion'=> null,
+                'fuente'   => 'stock',
+            ]);
+
+        return response()->json($activos->concat($stock)->values());
+    }
+
     public function trazabilidad($id)
     {
         Producto::findOrFail($id);
