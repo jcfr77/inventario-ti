@@ -85,7 +85,7 @@ class UsuarioController extends Controller
     public function sucursales($id)
     {
         $usuario = Usuario::findOrFail($id);
-        return response()->json($usuario->sucursales()->pluck('ID_SUCURSAL'));
+        return response()->json($usuario->sucursales()->pluck('infra_sucursal.ID_SUCURSAL'));
     }
 
     public function asignarSucursales(Request $request, $id)
