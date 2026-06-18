@@ -5,7 +5,7 @@
 - Host: 186.10.251.22
 - Usuario: supervisor
 - Contraseña: asus2025
-- Puerto SSH: 22
+- Puerto SSH: 2222
 - Puerto API MikroTik: 8728 ✅ (método activo)
 
 ## CESFAM SUR
@@ -13,7 +13,15 @@
 - Host: 164.77.124.182
 - Usuario: claude
 - Contraseña: pluton2026
-- Puerto SSH: 22
+- Puerto SSH: 2222
+- Puerto API MikroTik: 8728 ✅ (método activo)
+
+## CASA CENTRAL
+- ID_SUCURSAL:22
+- Host: 192.168.1.5
+- Usuario: claude
+- Contraseña: pluton2026
+- Puerto SSH: 2222
 - Puerto API MikroTik: 8728 ✅ (método activo)
 
 ## Instrucciones para Claude
