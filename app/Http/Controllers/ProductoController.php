@@ -59,16 +59,21 @@ class ProductoController extends Controller
     {
         $tiposStock = [1 => 'INGRESO', 2 => 'EGRESO', 3 => 'PRÉSTAMO', 4 => 'DEVOLUCIÓN', 5 => 'BAJA'];
 
-        $stockQ = DB::table('infra_detalle_mov as d')
+        $baseStock = DB::table('infra_detalle_mov as d')
             ->join('infra_encabezado_mov as e', 'e.ID_ENCABEZADO', '=', 'd.ID_ENCABEZADO')
             ->leftJoin('infra_sucursal as s', 's.ID_SUCURSAL', '=', 'e.ID_SUCURSAL')
             ->where('d.ID_PRODUCTO', $id);
 
         if ($nserie !== null) {
-            $stockQ->where('d.NSERIEDETA', $nserie);
+            // Si el serial está registrado en NSERIEDETA, filtrar por él.
+            // Si no, mostrar todos los movimientos de stock del producto (contexto de lote).
+            $tieneEnStock = (clone $baseStock)->where('d.NSERIEDETA', $nserie)->exists();
+            if ($tieneEnStock) {
+                $baseStock->where('d.NSERIEDETA', $nserie);
+            }
         }
 
-        $stockMovs = $stockQ
+        $stockMovs = $baseStock
             ->select('e.FECHA_ENCA as fecha', 'e.ID_TIPO_MOV', 'd.DETA_CANT as cantidad',
                      'd.NSERIEDETA as serie', 's.NOMBRE_SUCURSAL as sede',
                      'e.OBS_ENCA as obs', 'e.RESPONSABLE')
