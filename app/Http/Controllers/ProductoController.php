@@ -55,14 +55,20 @@ class ProductoController extends Controller
         return response()->json(null, 204);
     }
 
-    private function buildTimeline(int $id): array
+    private function buildTimeline(int $id, ?string $nserie = null): array
     {
         $tiposStock = [1 => 'INGRESO', 2 => 'EGRESO', 3 => 'PRÉSTAMO', 4 => 'DEVOLUCIÓN', 5 => 'BAJA'];
 
-        $stockMovs = DB::table('infra_detalle_mov as d')
+        $stockQ = DB::table('infra_detalle_mov as d')
             ->join('infra_encabezado_mov as e', 'e.ID_ENCABEZADO', '=', 'd.ID_ENCABEZADO')
             ->leftJoin('infra_sucursal as s', 's.ID_SUCURSAL', '=', 'e.ID_SUCURSAL')
-            ->where('d.ID_PRODUCTO', $id)
+            ->where('d.ID_PRODUCTO', $id);
+
+        if ($nserie !== null) {
+            $stockQ->where('d.NSERIEDETA', $nserie);
+        }
+
+        $stockMovs = $stockQ
             ->select('e.FECHA_ENCA as fecha', 'e.ID_TIPO_MOV', 'd.DETA_CANT as cantidad',
                      'd.NSERIEDETA as serie', 's.NOMBRE_SUCURSAL as sede',
                      'e.OBS_ENCA as obs', 'e.RESPONSABLE')
@@ -79,8 +85,14 @@ class ProductoController extends Controller
                 'vigente' => null,
             ]);
 
-        $activoMovs = MovimientoProducto::with(['sucursal', 'estado'])
-            ->where('ID_PRODUCTO', $id)
+        $activoQ = MovimientoProducto::with(['sucursal', 'estado'])
+            ->where('ID_PRODUCTO', $id);
+
+        if ($nserie !== null) {
+            $activoQ->where('NSERIE_PRO', $nserie);
+        }
+
+        $activoMovs = $activoQ
             ->orderBy('FECHA_INGRESO')
             ->get()
             ->map(fn($m) => [
@@ -123,7 +135,7 @@ class ProductoController extends Controller
 
         return response()->json([
             'producto' => $producto,
-            'timeline' => $this->buildTimeline($idProducto),
+            'timeline' => $this->buildTimeline($idProducto, $nserie),
         ]);
     }
 }
