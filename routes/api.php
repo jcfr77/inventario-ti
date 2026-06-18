@@ -30,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Solo Administrador (rol 1)
     Route::middleware('rol:1')->group(function () {
         Route::apiResource('usuarios', UsuarioController::class)->only(['index','store','update','destroy']);
+        Route::get('usuarios/{id}/sucursales',    [UsuarioController::class, 'sucursales']);
+        Route::put('usuarios/{id}/sucursales',    [UsuarioController::class, 'asignarSucursales']);
         Route::apiResource('roles', RolController::class)->only(['index','store','update','destroy']);
         Route::get('permisos',                    [RolController::class, 'permisos']);
         Route::get('roles/{id}/permisos',         [RolController::class, 'permisosRol']);

@@ -81,4 +81,18 @@ class UsuarioController extends Controller
         Usuario::findOrFail($id)->delete();
         return response()->json(null, 204);
     }
+
+    public function sucursales($id)
+    {
+        $usuario = Usuario::findOrFail($id);
+        return response()->json($usuario->sucursales()->pluck('ID_SUCURSAL'));
+    }
+
+    public function asignarSucursales(Request $request, $id)
+    {
+        $request->validate(['sucursales' => 'present|array', 'sucursales.*' => 'integer']);
+        $usuario = Usuario::findOrFail($id);
+        $usuario->sucursales()->sync($request->sucursales);
+        return response()->json(['sucursales' => $usuario->sucursales()->pluck('ID_SUCURSAL')]);
+    }
 }

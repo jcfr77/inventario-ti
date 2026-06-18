@@ -8,8 +8,15 @@ use Illuminate\Http\Request;
 
 class SucursalController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $usuario = $request->user();
+
+        if ($usuario && !$usuario->verTodasSedes()) {
+            $ids = $usuario->sucursales()->pluck('infra_sucursal.ID_SUCURSAL');
+            return response()->json(Sucursal::whereIn('ID_SUCURSAL', $ids)->orderBy('NOMBRE_SUCURSAL')->get());
+        }
+
         return response()->json(Sucursal::orderBy('NOMBRE_SUCURSAL')->get());
     }
 
