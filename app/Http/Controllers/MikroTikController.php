@@ -186,7 +186,7 @@ class MikroTikController extends Controller
     {
         $idSucursal = $request->input('id_sucursal', 10);
 
-        // Equipos con IP asignada en esa sucursal
+        // Solo equipos vigentes con IP asignada en esa sucursal
         $equipos = \DB::table('infra_movimientos_productos as m')
             ->join('infra_sucursal as s',  's.ID_SUCURSAL',  '=', 'm.ID_SUCURSAL')
             ->join('infra_producto as p',  'p.ID_PRODUCTO',  '=', 'm.ID_PRODUCTO')
@@ -194,6 +194,7 @@ class MikroTikController extends Controller
             ->join('infra_marca_producto as ma', 'ma.ID_MARCA', '=', 'p.ID_MARCA')
             ->join('infra_estado as e', 'e.ID_ESTADO', '=', 'm.ID_ESTADO')
             ->where('m.ID_SUCURSAL', $idSucursal)
+            ->where('m.VIGENTE', 1)
             ->whereNotNull('m.IP_INTERNA')
             ->where('m.IP_INTERNA', '!=', '')
             ->select(
@@ -215,46 +216,63 @@ class MikroTikController extends Controller
 
         $sucursalNombre = $equipos->first()->NOMBRE_SUCURSAL;
 
-        // Conectar al MikroTik y obtener tabla ARP
         try {
             if (!$this->cargarConexion((int)$idSucursal)) throw new \Exception("Sede #{$idSucursal} no está configurada en mikrotik.md");
             if (!$this->connect()) throw new \Exception('Sin conexión al router');
-            $arpRows   = $this->command('/ip/arp/print');
-            $addrRows  = $this->command('/ip/address/print');
-            $this->disconnect();
 
-            // IPs propias del router (siempre activas)
+            $arpRows  = $this->command('/ip/arp/print');
+            $addrRows = $this->command('/ip/address/print');
+
+            // IPs propias del router → siempre activas
             $ipsRouter = collect($addrRows)
                 ->map(fn($r) => explode('/', $r['address'] ?? '')[0])
-                ->flip()
-                ->all();
+                ->flip()->all();
 
-            // IPs activas: reachable, stale, delay, permanent (excluye failed e incomplete)
-            $todasIpsArp = collect($arpRows)
+            // IPs en ARP con estado válido (excluye failed e incomplete)
+            $ipsArp = collect($arpRows)
                 ->whereNotIn('status', ['failed', 'incomplete'])
-                ->pluck('address')
-                ->flip()
-                ->all();
+                ->pluck('address')->flip()->all();
 
-            // Unir IPs del router con las del ARP
-            $todasIpsArp = array_merge($todasIpsArp, $ipsRouter);
+            $ipsArp = array_merge($ipsArp, $ipsRouter);
+
+            // Para equipos NO detectados por ARP, verificar con ping
+            $resultado = $equipos->map(function ($eq) use ($ipsArp) {
+                $ip  = trim($eq->IP_INTERNA);
+                $via = 'none';
+
+                if (isset($ipsArp[$ip])) {
+                    $via = 'arp';
+                } elseif ($ip && $this->pingIP($ip)) {
+                    $via = 'ping';
+                }
+
+                return [
+                    'id'         => $eq->ID_MOVIMIENTO,
+                    'producto'   => "{$eq->NOMBRE_TIPO} · {$eq->DESCRIPCION_MARCA} · {$eq->MODELO_PRO}",
+                    'serie'      => $eq->NSERIE_PRO ?? '—',
+                    'ip'         => $ip,
+                    'ubicacion'  => $eq->UBICACION_PRO ?? '—',
+                    'estado_inv' => $eq->NOMBRE_ESTADO,
+                    'activo_red' => $via !== 'none',
+                    'via'        => $via,
+                ];
+            });
+
+            $this->disconnect();
 
         } catch (\Throwable $e) {
-            $todasIpsArp = [];
+            $this->disconnect();
+            $resultado = $equipos->map(fn($eq) => [
+                'id'         => $eq->ID_MOVIMIENTO,
+                'producto'   => "{$eq->NOMBRE_TIPO} · {$eq->DESCRIPCION_MARCA} · {$eq->MODELO_PRO}",
+                'serie'      => $eq->NSERIE_PRO ?? '—',
+                'ip'         => trim($eq->IP_INTERNA),
+                'ubicacion'  => $eq->UBICACION_PRO ?? '—',
+                'estado_inv' => $eq->NOMBRE_ESTADO,
+                'activo_red' => false,
+                'via'        => 'none',
+            ]);
         }
-
-        $resultado = $equipos->map(function ($eq) use ($todasIpsArp) {
-            $ip = trim($eq->IP_INTERNA);
-            return [
-                'id'          => $eq->ID_MOVIMIENTO,
-                'producto'    => "{$eq->NOMBRE_TIPO} · {$eq->DESCRIPCION_MARCA} · {$eq->MODELO_PRO}",
-                'serie'       => $eq->NSERIE_PRO ?? '—',
-                'ip'          => $ip,
-                'ubicacion'   => $eq->UBICACION_PRO ?? '—',
-                'estado_inv'  => $eq->NOMBRE_ESTADO,
-                'activo_red'  => isset($todasIpsArp[$ip]),
-            ];
-        });
 
         return response()->json([
             'sucursal' => $sucursalNombre,
