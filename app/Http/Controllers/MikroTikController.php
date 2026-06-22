@@ -94,10 +94,11 @@ class MikroTikController extends Controller
         return $result;
     }
 
-    private function command(string $cmd, array $args = []): array
+    private function command(string $cmd, array $filters = [], array $params = []): array
     {
         $words = [$cmd];
-        foreach ($args as $k => $v) $words[] = "?$k=$v";
+        foreach ($params  as $k => $v) $words[] = "=$k=$v";
+        foreach ($filters as $k => $v) $words[] = "?$k=$v";
         $this->send($words);
         $rows = [];
         foreach ($this->readAll() as $sent) {
@@ -117,6 +118,14 @@ class MikroTikController extends Controller
     private function disconnect(): void
     {
         if ($this->socket) fclose($this->socket);
+    }
+
+    private function fmtBytes(int $bytes): string
+    {
+        if ($bytes >= 1073741824) return round($bytes / 1073741824, 2) . ' GB';
+        if ($bytes >= 1048576)    return round($bytes / 1048576, 2)    . ' MB';
+        if ($bytes >= 1024)       return round($bytes / 1024, 2)       . ' KB';
+        return $bytes . ' B';
     }
 
     private function pingIP(string $ip): bool
@@ -292,8 +301,15 @@ class MikroTikController extends Controller
 
             $res   = $this->command('/system/resource/print')[0] ?? [];
             $iface = $this->command('/interface/print');
+            $stats = $this->command('/interface/print', [], ['.proplist' => 'name,rx-byte,tx-byte,rx-packet,tx-packet']);
             $ips   = $this->command('/ip/address/print');
             $rutas = $this->command('/ip/route/print');
+
+            // Indexar stats por nombre de interfaz
+            $statsByName = [];
+            foreach ($stats as $s) {
+                if (isset($s['name'])) $statsByName[$s['name']] = $s;
+            }
 
             $this->disconnect();
 
@@ -326,13 +342,21 @@ class MikroTikController extends Controller
                     'hdd_mb'    => round(($hddTotal - $hddLibre) / 1024 / 1024),
                     'hdd_total' => round($hddTotal / 1024 / 1024),
                 ],
-                'interfaces' => array_map(fn($i) => [
-                    'nombre'  => $i['name'] ?? '—',
-                    'tipo'    => $i['type'] ?? '—',
-                    'estado'  => ($i['running'] ?? 'false') === 'true' ? 'up' : 'down',
-                    'mac'     => $i['mac-address'] ?? '—',
-                    'comment' => $i['comment'] ?? '',
-                ], $iface),
+                'interfaces' => array_map(function ($i) use ($statsByName) {
+                    $nombre = $i['name'] ?? '—';
+                    $s      = $statsByName[$nombre] ?? [];
+                    return [
+                        'nombre'  => $nombre,
+                        'tipo'    => $i['type'] ?? '—',
+                        'estado'  => ($i['running'] ?? 'false') === 'true' ? 'up' : 'down',
+                        'mac'     => $i['mac-address'] ?? '—',
+                        'comment' => $i['comment'] ?? '',
+                        'rx'      => isset($s['rx-byte']) ? $this->fmtBytes((int)$s['rx-byte']) : '—',
+                        'tx'      => isset($s['tx-byte']) ? $this->fmtBytes((int)$s['tx-byte']) : '—',
+                        'rx_raw'  => (int)($s['rx-byte'] ?? 0),
+                        'tx_raw'  => (int)($s['tx-byte'] ?? 0),
+                    ];
+                }, $iface),
                 'ips' => array_map(fn($ip) => [
                     'direccion'  => $ip['address'] ?? '—',
                     'interfaz'   => $ip['interface'] ?? '—',
