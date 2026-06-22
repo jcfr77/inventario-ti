@@ -31,6 +31,32 @@ class MovimientoProductoController extends Controller
             'OBS_BAJA'     => 'nullable|string',
         ]);
 
+        $duplicados = [];
+
+        if ($request->filled('NSERIE_PRO')) {
+            $existe = MovimientoProducto::where('NSERIE_PRO', $request->NSERIE_PRO)
+                ->where('VIGENTE', 1)->exists();
+            if ($existe) $duplicados[] = 'N° de Serie "' . $request->NSERIE_PRO . '"';
+        }
+
+        if ($request->filled('MAC_PRODUCTO')) {
+            $existe = MovimientoProducto::where('MAC_PRODUCTO', $request->MAC_PRODUCTO)
+                ->where('VIGENTE', 1)->exists();
+            if ($existe) $duplicados[] = 'MAC "' . $request->MAC_PRODUCTO . '"';
+        }
+
+        if ($request->filled('IP_INTERNA')) {
+            $existe = MovimientoProducto::where('IP_INTERNA', $request->IP_INTERNA)
+                ->where('VIGENTE', 1)->exists();
+            if ($existe) $duplicados[] = 'IP "' . $request->IP_INTERNA . '"';
+        }
+
+        if (!empty($duplicados)) {
+            return response()->json([
+                'error' => 'No se puede registrar. Ya existe un equipo activo con el mismo ' . implode(', ', $duplicados) . '. No se permiten duplicados.',
+            ], 422);
+        }
+
         $movimiento = MovimientoProducto::create(array_merge(
             $request->only(['ID_SUCURSAL', 'ID_ESTADO', 'ID_PRODUCTO',
                 'NSERIE_PRO', 'MAC_PRODUCTO', 'IP_INTERNA', 'UBICACION_PRO', 'OBS_BAJA']),
