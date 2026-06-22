@@ -43,7 +43,7 @@ class MikroTikController extends Controller
     {
         $this->socket = @fsockopen($this->host, $this->port, $errno, $errstr, 4);
         if (!$this->socket) return false;
-        stream_set_timeout($this->socket, 4);
+        stream_set_timeout($this->socket, 6);
         $this->send(['/login', "=name={$this->usuario}", "=password={$this->password}"]);
         $r = $this->readAll();
         return isset($r[0][0]) && $r[0][0] === '!done';
@@ -120,12 +120,12 @@ class MikroTikController extends Controller
         if ($this->socket) fclose($this->socket);
     }
 
-    private function fmtBytes(int $bytes): string
+    private function fmtBps(int $bps): string
     {
-        if ($bytes >= 1073741824) return round($bytes / 1073741824, 2) . ' GB';
-        if ($bytes >= 1048576)    return round($bytes / 1048576, 2)    . ' MB';
-        if ($bytes >= 1024)       return round($bytes / 1024, 2)       . ' KB';
-        return $bytes . ' B';
+        if ($bps >= 1000000000) return round($bps / 1000000000, 1) . ' Gbps';
+        if ($bps >= 1000000)    return round($bps / 1000000, 1)    . ' Mbps';
+        if ($bps >= 1000)       return round($bps / 1000, 1)       . ' kbps';
+        return $bps . ' bps';
     }
 
     private function pingIP(string $ip): bool
@@ -301,14 +301,21 @@ class MikroTikController extends Controller
 
             $res   = $this->command('/system/resource/print')[0] ?? [];
             $iface = $this->command('/interface/print');
-            $stats = $this->command('/interface/print', [], ['.proplist' => 'name,rx-byte,tx-byte,rx-packet,tx-packet']);
             $ips   = $this->command('/ip/address/print');
             $rutas = $this->command('/ip/route/print');
 
-            // Indexar stats por nombre de interfaz
-            $statsByName = [];
-            foreach ($stats as $s) {
-                if (isset($s['name'])) $statsByName[$s['name']] = $s;
+            // Tráfico en tiempo real — pasar nombres reales (API no acepta "all")
+            $trafficByName = [];
+            try {
+                $nombres = implode(',', array_column($iface, 'name'));
+                if ($nombres) {
+                    $traffic = $this->command('/interface/monitor-traffic', [], ['interface' => $nombres, 'once' => '']);
+                    foreach ($traffic as $t) {
+                        if (isset($t['name'])) $trafficByName[$t['name']] = $t;
+                    }
+                }
+            } catch (\Throwable) {
+                // Si falla, se muestra 0 bps — no afecta el resto de la página
             }
 
             $this->disconnect();
@@ -342,19 +349,22 @@ class MikroTikController extends Controller
                     'hdd_mb'    => round(($hddTotal - $hddLibre) / 1024 / 1024),
                     'hdd_total' => round($hddTotal / 1024 / 1024),
                 ],
-                'interfaces' => array_map(function ($i) use ($statsByName) {
+                'interfaces' => array_map(function ($i) use ($trafficByName) {
                     $nombre = $i['name'] ?? '—';
-                    $s      = $statsByName[$nombre] ?? [];
+                    $t      = $trafficByName[$nombre] ?? [];
+                    // Suma slow path + fast path igual que WinBox
+                    $rxBps  = (int)($t['rx-bits-per-second'] ?? 0) + (int)($t['fp-rx-bits-per-second'] ?? 0);
+                    $txBps  = (int)($t['tx-bits-per-second'] ?? 0) + (int)($t['fp-tx-bits-per-second'] ?? 0);
                     return [
                         'nombre'  => $nombre,
                         'tipo'    => $i['type'] ?? '—',
                         'estado'  => ($i['running'] ?? 'false') === 'true' ? 'up' : 'down',
                         'mac'     => $i['mac-address'] ?? '—',
                         'comment' => $i['comment'] ?? '',
-                        'rx'      => isset($s['rx-byte']) ? $this->fmtBytes((int)$s['rx-byte']) : '—',
-                        'tx'      => isset($s['tx-byte']) ? $this->fmtBytes((int)$s['tx-byte']) : '—',
-                        'rx_raw'  => (int)($s['rx-byte'] ?? 0),
-                        'tx_raw'  => (int)($s['tx-byte'] ?? 0),
+                        'rx'      => $this->fmtBps($rxBps),
+                        'tx'      => $this->fmtBps($txBps),
+                        'rx_raw'  => $rxBps,
+                        'tx_raw'  => $txBps,
                     ];
                 }, $iface),
                 'ips' => array_map(fn($ip) => [
