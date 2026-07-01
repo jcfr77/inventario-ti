@@ -9,20 +9,14 @@ class RolPermisoSeeder extends Seeder
 {
     public function run(): void
     {
-        // Administrador — acceso total
-        $adminPermisos = range(1, 21);
-        foreach ($adminPermisos as $idPermiso) {
-            DB::table('infra_rol_permiso')->insert(['ID_ROL' => 1, 'ID_PERMISO' => $idPermiso]);
-        }
+        // Todos los permisos disponibles (la visibilidad del menú se rige por grupos por usuario,
+        // no por esta tabla, pero se mantiene para compatibilidad con el sistema de permisos heredado)
+        $todosLosPermisos = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26];
 
-        // Técnico TI
-        foreach ([1, 3, 10, 18, 19, 20, 21] as $idPermiso) {
-            DB::table('infra_rol_permiso')->insert(['ID_ROL' => 2, 'ID_PERMISO' => $idPermiso]);
-        }
-
-        // Supervisor
-        foreach ([1, 2, 3, 16, 17, 18, 19, 20, 21] as $idPermiso) {
-            DB::table('infra_rol_permiso')->insert(['ID_ROL' => 3, 'ID_PERMISO' => $idPermiso]);
+        foreach ([1, 2, 3, 4] as $idRol) {
+            foreach ($todosLosPermisos as $idPermiso) {
+                DB::table('infra_rol_permiso')->insert(['ID_ROL' => $idRol, 'ID_PERMISO' => $idPermiso]);
+            }
         }
     }
 }

@@ -10,9 +10,10 @@ class RolSeeder extends Seeder
     public function run(): void
     {
         DB::table('infra_rol')->insert([
-            ['ID_ROL' => 1, 'NOMBRE_ROL' => 'Administrador',  'DESCRIPCION' => 'Acceso total al sistema'],
-            ['ID_ROL' => 2, 'NOMBRE_ROL' => 'Técnico TI',     'DESCRIPCION' => 'Gestión de productos y movimientos'],
-            ['ID_ROL' => 3, 'NOMBRE_ROL' => 'Supervisor',     'DESCRIPCION' => 'Solo lectura e informes'],
+            ['ID_ROL' => 1, 'NOMBRE_ROL' => 'Super Administrador', 'DESCRIPCION' => 'Acceso completo CRUD',  'TIPO_ACCESO' => 'CRUD'],
+            ['ID_ROL' => 2, 'NOMBRE_ROL' => 'Administrador',       'DESCRIPCION' => 'Crear, ver y editar',   'TIPO_ACCESO' => 'CRU'],
+            ['ID_ROL' => 3, 'NOMBRE_ROL' => 'Usuario',             'DESCRIPCION' => 'Crear y ver',           'TIPO_ACCESO' => 'CR'],
+            ['ID_ROL' => 4, 'NOMBRE_ROL' => 'Lector',              'DESCRIPCION' => 'Solo lectura',          'TIPO_ACCESO' => 'R'],
         ]);
     }
 }

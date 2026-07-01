@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Usuario;
+use App\Models\UsuarioGrupo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -11,7 +12,7 @@ class UsuarioController extends Controller
     public function index()
     {
         return response()->json(
-            Usuario::with('rol')->orderBy('ID_USUARIO')->get()
+            Usuario::with(['rol', 'grupos'])->orderBy('ID_USUARIO')->get()
                 ->map(fn($u) => [
                     'ID_USUARIO' => $u->ID_USUARIO,
                     'NOMBRE'     => $u->NOMBRE,
@@ -20,6 +21,7 @@ class UsuarioController extends Controller
                     'ROL'        => $u->rol->NOMBRE_ROL ?? '—',
                     'ACTIVO'     => $u->ACTIVO,
                     'CREATED_AT' => $u->CREATED_AT,
+                    'grupos'     => $u->grupos->map(fn($g) => ['grupo' => $g->GRUPO, 'tipo_acceso' => $g->TIPO_ACCESO]),
                 ])
         );
     }
@@ -27,22 +29,33 @@ class UsuarioController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'NOMBRE'   => 'required|string|max:100',
-            'EMAIL'    => 'required|email|unique:infra_usuario,EMAIL',
-            'PASSWORD' => 'required|string|min:6',
-            'ID_ROL'   => 'required|integer|exists:infra_rol,ID_ROL',
+            'NOMBRE'               => 'required|string|max:100',
+            'EMAIL'                => 'required|email|unique:infra_usuario,EMAIL',
+            'PASSWORD'             => 'required|string|min:6',
+            'ID_ROL'               => 'required|integer|exists:infra_rol,ID_ROL',
+            'grupos'               => 'present|array',
+            'grupos.*.grupo'       => 'required|string|max:50',
+            'grupos.*.tipo_acceso' => 'required|in:CRUD,CRU,CR,R',
         ]);
 
         $usuario = Usuario::create([
-            'NOMBRE'   => $request->NOMBRE,
-            'EMAIL'    => $request->EMAIL,
-            'PASSWORD' => Hash::make($request->PASSWORD),
-            'ID_ROL'   => $request->ID_ROL,
-            'ACTIVO'   => 1,
+            'NOMBRE'                => $request->NOMBRE,
+            'EMAIL'                 => $request->EMAIL,
+            'PASSWORD'              => Hash::make($request->PASSWORD),
+            'ID_ROL'                => $request->ID_ROL,
+            'ACTIVO'                => 1,
             'DEBE_CAMBIAR_PASSWORD' => 1,
         ]);
 
-        return response()->json($usuario->load('rol'), 201);
+        foreach ($request->grupos as $g) {
+            UsuarioGrupo::create([
+                'ID_USUARIO'  => $usuario->ID_USUARIO,
+                'GRUPO'       => $g['grupo'],
+                'TIPO_ACCESO' => $g['tipo_acceso'],
+            ]);
+        }
+
+        return response()->json($usuario->load(['rol', 'grupos']), 201);
     }
 
     public function update(Request $request, $id)
@@ -70,7 +83,25 @@ class UsuarioController extends Controller
         }
 
         $usuario->update($datos);
-        return response()->json($usuario->load('rol'));
+
+        // Sincronizar grupos si se enviaron
+        if ($request->has('grupos')) {
+            $request->validate([
+                'grupos'               => 'array',
+                'grupos.*.grupo'       => 'required|string|max:50',
+                'grupos.*.tipo_acceso' => 'required|in:CRUD,CRU,CR,R',
+            ]);
+            UsuarioGrupo::where('ID_USUARIO', $id)->delete();
+            foreach ($request->grupos as $g) {
+                UsuarioGrupo::create([
+                    'ID_USUARIO'  => $id,
+                    'GRUPO'       => $g['grupo'],
+                    'TIPO_ACCESO' => $g['tipo_acceso'],
+                ]);
+            }
+        }
+
+        return response()->json($usuario->load(['rol', 'grupos']));
     }
 
     public function destroy(Request $request, $id)
@@ -94,5 +125,19 @@ class UsuarioController extends Controller
         $usuario = Usuario::findOrFail($id);
         $usuario->sucursales()->sync($request->sucursales);
         return response()->json(['sucursales' => $usuario->sucursales()->pluck('ID_SUCURSAL')]);
+    }
+
+    public function permisos($id)
+    {
+        $usuario = Usuario::with('permisosItems')->findOrFail($id);
+        return response()->json($usuario->permisosItems->pluck('ID_PERMISO'));
+    }
+
+    public function asignarPermisos(Request $request, $id)
+    {
+        $usuario = Usuario::findOrFail($id);
+        $ids = $request->input('permisos', []);
+        $usuario->permisosItems()->sync($ids);
+        return response()->json(['message' => 'Permisos actualizados']);
     }
 }

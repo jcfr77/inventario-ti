@@ -37,6 +37,21 @@ class Usuario extends Authenticatable
         return $this->hasMany(Bitacora::class, 'ID_USUARIO', 'ID_USUARIO');
     }
 
+    public function grupos()
+    {
+        return $this->hasMany(UsuarioGrupo::class, 'ID_USUARIO', 'ID_USUARIO');
+    }
+
+    public function permisosItems()
+    {
+        return $this->belongsToMany(
+            Permiso::class,
+            'infra_usuario_permiso',
+            'ID_USUARIO',
+            'ID_PERMISO'
+        );
+    }
+
     public function sucursales()
     {
         return $this->belongsToMany(

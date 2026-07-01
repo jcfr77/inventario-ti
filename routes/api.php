@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('usuarios', UsuarioController::class)->only(['index','store','update','destroy']);
         Route::get('usuarios/{id}/sucursales',    [UsuarioController::class, 'sucursales']);
         Route::put('usuarios/{id}/sucursales',    [UsuarioController::class, 'asignarSucursales']);
+        Route::get('usuarios/{id}/permisos',      [UsuarioController::class, 'permisos']);
+        Route::post('usuarios/{id}/permisos',     [UsuarioController::class, 'asignarPermisos']);
         Route::apiResource('roles', RolController::class)->only(['index','store','update','destroy']);
         Route::get('permisos',                    [RolController::class, 'permisos']);
         Route::get('roles/{id}/permisos',         [RolController::class, 'permisosRol']);

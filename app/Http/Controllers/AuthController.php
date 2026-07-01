@@ -17,7 +17,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $usuario = Usuario::with('rol')->where('EMAIL', $request->email)->first();
+        $usuario = Usuario::with(['rol', 'rol.permisos', 'permisosItems'])->where('EMAIL', $request->email)->first();
 
         if (!$usuario || !Hash::check($request->password, $usuario->PASSWORD)) {
             Bitacora::registrar('Auth', 'LOGIN_FALLIDO', "Intento fallido de inicio de sesión: {$request->email}", $request->ip());
@@ -30,7 +30,10 @@ class AuthController extends Controller
         }
 
         $token    = $usuario->createToken('api-token')->plainTextToken;
-        $permisos = $usuario->rol->permisos()->orderBy('ORDEN')->get(['CLAVE','ETIQUETA','ICONO','GRUPO']);
+        $grupos   = $usuario->grupos()->get(['GRUPO', 'TIPO_ACCESO'])
+                            ->map(fn($g) => ['grupo' => $g->GRUPO, 'tipo_acceso' => $g->TIPO_ACCESO]);
+        $permisos = $usuario->rol->permisos->pluck('CLAVE')->values();
+        $permisosUsuario = $usuario->permisosItems->pluck('CLAVE')->values();
 
         Bitacora::registrar('Auth', 'LOGIN', "Inicio de sesión: {$usuario->NOMBRE}", $request->ip(), $usuario->ID_USUARIO);
 
@@ -42,7 +45,9 @@ class AuthController extends Controller
                 'email'                 => $usuario->EMAIL,
                 'rol'                   => $usuario->rol->NOMBRE_ROL,
                 'id_rol'                => $usuario->ID_ROL,
-                'permisos'              => $permisos->pluck('CLAVE'),
+                'grupos'                => $grupos,
+                'permisos'              => $permisos,
+                'permisos_usuario'      => $permisosUsuario,
                 'debe_cambiar_password' => $usuario->DEBE_CAMBIAR_PASSWORD,
             ],
         ]);
@@ -79,15 +84,20 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        $usuario  = $request->user()->load('rol');
-        $permisos = $usuario->rol->permisos()->orderBy('ORDEN')->pluck('CLAVE');
+        $usuario  = $request->user()->load(['rol', 'rol.permisos', 'permisosItems']);
+        $grupos   = $usuario->grupos()->get(['GRUPO', 'TIPO_ACCESO'])
+                            ->map(fn($g) => ['grupo' => $g->GRUPO, 'tipo_acceso' => $g->TIPO_ACCESO]);
+        $permisos = $usuario->rol->permisos->pluck('CLAVE')->values();
+        $permisosUsuario = $usuario->permisosItems->pluck('CLAVE')->values();
         return response()->json([
             'id'                    => $usuario->ID_USUARIO,
             'nombre'                => $usuario->NOMBRE,
             'email'                 => $usuario->EMAIL,
             'rol'                   => $usuario->rol->NOMBRE_ROL,
             'id_rol'                => $usuario->ID_ROL,
+            'grupos'                => $grupos,
             'permisos'              => $permisos,
+            'permisos_usuario'      => $permisosUsuario,
             'debe_cambiar_password' => $usuario->DEBE_CAMBIAR_PASSWORD,
         ]);
     }
