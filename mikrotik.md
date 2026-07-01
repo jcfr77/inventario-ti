@@ -3,10 +3,10 @@
 ## FARMACIA COMUNAL SUR
 - ID_SUCURSAL: 10
 - Host: 186.10.251.22
-- Usuario: supervisor
-- Contraseña: asus2025
+- Usuario: claude
+- Contraseña: pluton2026
 - Puerto SSH: 2222
-- Puerto API MikroTik: 8728 ✅ (método activo)
+- Puerto API MikroTik: 8788 ✅ (método activo)
 
 ## CESFAM SUR
 - ID_SUCURSAL:4
@@ -16,13 +16,21 @@
 - Puerto SSH: 2222
 - Puerto API MikroTik: 8728 ✅ (método activo)
 
+## CESFAM GUZMAN
+- ID_SUCURSAL:3
+- Host: 152.231.79.70
+- Usuario: claude
+- Contraseña: pluton2026
+- Puerto SSH: 2222
+- Puerto API MikroTik: 8788 ✅ (método activo)
+
 ## CASA CENTRAL
 - ID_SUCURSAL:22
 - Host: 192.168.1.5
 - Usuario: claude
 - Contraseña: pluton2026
 - Puerto SSH: 2222
-- Puerto API MikroTik: 8728 ✅ (método activo)
+- Puerto API MikroTik: 8788 ✅ (método activo)
 
 ## Instrucciones para Claude
 - Antes de hacer cualquier cambio, muéstrame qué vas a ejecutar
@@ -43,3 +51,6 @@
 - Conexión vía API MikroTik (puerto 8728) — pura PHP sockets
 - Auto-refresco cada 10 segundos
 - Muestra: CPU, RAM, interfaces, IPs, rutas
+
+
+# Proyecto CAMARAS
