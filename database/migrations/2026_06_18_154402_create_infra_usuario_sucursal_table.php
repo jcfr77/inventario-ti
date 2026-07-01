@@ -1,25 +1,24 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('
-            CREATE TABLE infra_usuario_sucursal (
-                ID_USUARIO  INT(11) NOT NULL,
-                ID_SUCURSAL INT(11) NOT NULL,
-                PRIMARY KEY (ID_USUARIO, ID_SUCURSAL),
-                CONSTRAINT fk_us_usuario  FOREIGN KEY (ID_USUARIO)  REFERENCES infra_usuario(ID_USUARIO)  ON DELETE CASCADE,
-                CONSTRAINT fk_us_sucursal FOREIGN KEY (ID_SUCURSAL) REFERENCES infra_sucursal(ID_SUCURSAL) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ');
+        Schema::create('infra_usuario_sucursal', function (Blueprint $table) {
+            $table->integer('ID_USUARIO');
+            $table->integer('ID_SUCURSAL');
+            $table->primary(['ID_USUARIO', 'ID_SUCURSAL']);
+            $table->foreign('ID_USUARIO')->references('ID_USUARIO')->on('infra_usuario')->onDelete('cascade');
+            $table->foreign('ID_SUCURSAL')->references('ID_SUCURSAL')->on('infra_sucursal')->onDelete('cascade');
+        });
     }
 
     public function down(): void
     {
-        DB::statement('DROP TABLE IF EXISTS infra_usuario_sucursal');
+        Schema::dropIfExists('infra_usuario_sucursal');
     }
 };

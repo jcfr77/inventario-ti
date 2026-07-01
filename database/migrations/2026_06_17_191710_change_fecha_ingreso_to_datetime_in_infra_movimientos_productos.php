@@ -2,18 +2,21 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class ChangeFechaIngresoToDatetimeInInfraMovimientosProductos extends Migration
+return new class extends Migration
 {
-    public function up()
+    public function up(): void
     {
-        DB::statement('ALTER TABLE infra_movimientos_productos MODIFY COLUMN FECHA_INGRESO DATETIME NULL');
+        Schema::table('infra_movimientos_productos', function (Blueprint $table) {
+            $table->dateTime('FECHA_INGRESO')->nullable()->change();
+        });
     }
 
-    public function down()
+    public function down(): void
     {
-        DB::statement('ALTER TABLE infra_movimientos_productos MODIFY COLUMN FECHA_INGRESO DATE NULL');
+        Schema::table('infra_movimientos_productos', function (Blueprint $table) {
+            $table->date('FECHA_INGRESO')->nullable()->change();
+        });
     }
-}
+};
