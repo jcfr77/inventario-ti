@@ -15,7 +15,7 @@ class RolPermisoSeeder extends Seeder
 
         foreach ([1, 2, 3, 4] as $idRol) {
             foreach ($todosLosPermisos as $idPermiso) {
-                DB::table('infra_rol_permiso')->insert(['ID_ROL' => $idRol, 'ID_PERMISO' => $idPermiso]);
+                DB::table('infra_rol_permiso')->insertOrIgnore(['ID_ROL' => $idRol, 'ID_PERMISO' => $idPermiso]);
             }
         }
     }

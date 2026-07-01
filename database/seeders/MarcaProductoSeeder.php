@@ -9,7 +9,7 @@ class MarcaProductoSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_marca_producto')->insert([
+        DB::table('infra_marca_producto')->insertOrIgnore([
             ['ID_MARCA' =>  1, 'DESCRIPCION_MARCA' => 'HP'],
             ['ID_MARCA' =>  2, 'DESCRIPCION_MARCA' => 'LENOVO'],
             ['ID_MARCA' =>  3, 'DESCRIPCION_MARCA' => 'ASUS'],

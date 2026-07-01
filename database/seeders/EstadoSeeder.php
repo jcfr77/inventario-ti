@@ -9,7 +9,7 @@ class EstadoSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_estado')->insert([
+        DB::table('infra_estado')->insertOrIgnore([
             ['ID_ESTADO' => 1, 'NOMBRE_ESTADO' => 'ACTIVO'],
             ['ID_ESTADO' => 2, 'NOMBRE_ESTADO' => 'INACTIVO'],
             ['ID_ESTADO' => 3, 'NOMBRE_ESTADO' => 'BAJA'],

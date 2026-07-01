@@ -9,7 +9,7 @@ class TipoMovimientoSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_tipo_movimiento')->insert([
+        DB::table('infra_tipo_movimiento')->insertOrIgnore([
             ['ID_TIPO_MOV' => 1, 'DESCRI_TIPO_MOV' => 'INGRESO'],
             ['ID_TIPO_MOV' => 2, 'DESCRI_TIPO_MOV' => 'EGRESO'],
             ['ID_TIPO_MOV' => 3, 'DESCRI_TIPO_MOV' => 'PRESTAMO'],

@@ -9,7 +9,7 @@ class PermisoSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_permiso')->insert([
+        DB::table('infra_permiso')->insertOrIgnore([
             // General (siempre visibles para todos los usuarios)
             ['ID_PERMISO' =>  1, 'CLAVE' => 'dashboard',                        'ETIQUETA' => 'Inicio / Dashboard',  'ICONO' => '📊', 'GRUPO' => 'General',             'ORDEN' =>  1],
             ['ID_PERMISO' =>  2, 'CLAVE' => 'bitacora',                          'ETIQUETA' => 'Bitácora',            'ICONO' => '📋', 'GRUPO' => 'Sistema',             'ORDEN' =>  2],

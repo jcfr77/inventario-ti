@@ -9,7 +9,7 @@ class SucursalSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_sucursal')->insert([
+        DB::table('infra_sucursal')->insertOrIgnore([
             ['ID_SUCURSAL' =>  1, 'NOMBRE_SUCURSAL' => 'CESFAM VIDELA'],
             ['ID_SUCURSAL' =>  2, 'NOMBRE_SUCURSAL' => 'CESFAM AGUIRRE'],
             ['ID_SUCURSAL' =>  3, 'NOMBRE_SUCURSAL' => 'CESFAM GUZMAN'],

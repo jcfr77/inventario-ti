@@ -10,7 +10,7 @@ class UsuarioSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_usuario')->insert([
+        DB::table('infra_usuario')->insertOrIgnore([
             [
                 'NOMBRE'                 => 'Administrador',
                 'EMAIL'                  => 'admin@cormudesi.cl',

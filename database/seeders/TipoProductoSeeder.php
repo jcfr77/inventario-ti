@@ -9,7 +9,7 @@ class TipoProductoSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('infra_tipo_producto')->insert([
+        DB::table('infra_tipo_producto')->insertOrIgnore([
             ['ID_TIPO_PRO' =>  1, 'NOMBRE_TIPO' => 'COMPUTADOR ALL-IN-ONE'],
             ['ID_TIPO_PRO' =>  2, 'NOMBRE_TIPO' => 'NOTEBOOK'],
             ['ID_TIPO_PRO' =>  3, 'NOMBRE_TIPO' => 'IMPRESORA DE TINTA'],
