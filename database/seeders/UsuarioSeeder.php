@@ -22,5 +22,16 @@ class UsuarioSeeder extends Seeder
                 'updated_at'            => now(),
             ]
         );
+
+        $idUsuario = DB::table('infra_usuario')->where('EMAIL', 'admin@cormudesi.cl')->value('ID_USUARIO');
+
+        $grupos = ['mantenedores', 'activo-en-uso', 'inventario', 'informes', 'monitoreo', 'sistema'];
+
+        foreach ($grupos as $grupo) {
+            DB::table('infra_usuario_grupo')->updateOrInsert(
+                ['ID_USUARIO' => $idUsuario, 'GRUPO' => $grupo],
+                ['TIPO_ACCESO' => 'CRUD']
+            );
+        }
     }
 }
