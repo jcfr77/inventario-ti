@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('infra_usuario_sucursal', function (Blueprint $table) {
-            $table->integer('ID_USUARIO');
-            $table->integer('ID_SUCURSAL');
+            $table->unsignedInteger('ID_USUARIO');
+            $table->unsignedInteger('ID_SUCURSAL');
             $table->primary(['ID_USUARIO', 'ID_SUCURSAL']);
             $table->foreign('ID_USUARIO')->references('ID_USUARIO')->on('infra_usuario')->onDelete('cascade');
             $table->foreign('ID_SUCURSAL')->references('ID_SUCURSAL')->on('infra_sucursal')->onDelete('cascade');

@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('infra_usuario_permiso', function (Blueprint $table) {
             $table->id('ID');
-            $table->integer('ID_USUARIO');
-            $table->integer('ID_PERMISO');
+            $table->unsignedInteger('ID_USUARIO');
+            $table->unsignedInteger('ID_PERMISO');
             $table->unique(['ID_USUARIO', 'ID_PERMISO']);
 
             $table->foreign('ID_USUARIO')->references('ID_USUARIO')->on('infra_usuario')->onDelete('cascade');
